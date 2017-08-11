@@ -87,6 +87,28 @@ private:
   TVector3 hitGPos_;
   std::vector<float> hitPar_;
   std::vector<float> hitErr_;
+
+  AlgebraicVector5 aVec5_;
+  AlgebraicSymMatrix55 aSymMat55_;
+
+  // typedef typename AlgebraicROOTObject<1,5>::Matrix Mat15;
+  // typedef typename AlgebraicROOTObject<5,1>::Matrix Mat51;
+  typedef typename AlgebraicROOTObject<1,1>::SymMatrix SMat11;
+  typedef typename AlgebraicROOTObject<1>::Vector Vec1;
+  ProjectMatrix<double,5,1>  projMat51_;
+  Vec1 resVec1_, resMeas1_; 
+  SMat11 matV11_, matVMeas11_;
+  KfComponentsHolder holder1_;
+
+  // typedef typename AlgebraicROOTObject<2,5>::Matrix Mat25;
+  // typedef typename AlgebraicROOTObject<5,2>::Matrix Mat52;
+  typedef typename AlgebraicROOTObject<2,2>::SymMatrix SMat22;
+  typedef typename AlgebraicROOTObject<2>::Vector Vec2;
+  ProjectMatrix<double,5,2>  projMat52_;
+  Vec2 resVec2_, resMeas2_; 
+  SMat22 matV22_, matVMeas22_;
+  KfComponentsHolder holder2_;
+
 };
 
 //
@@ -105,12 +127,21 @@ GsfTrajectoryAnalyzer::GsfTrajectoryAnalyzer(const edm::ParameterSet& iConfig) :
   fwPredLPar_(5,0.),fwPredLErr_(5,0.),
   bwPredLPar_(5,0.),bwPredLErr_(5,0.),
   updLPar_(5,0.),updLErr_(5,0.),
-  hitPar_(2,0.),hitErr_(2,0.)
+  hitPar_(2,0.),hitErr_(2,0.),
+  matV11_(ROOT::Math::SMatrixNoInit{}),matVMeas11_(ROOT::Math::SMatrixNoInit{}),
+  matV22_(ROOT::Math::SMatrixNoInit{}),matVMeas22_(ROOT::Math::SMatrixNoInit{})
 {
    // //now do what ever initialization is needed
   usesResource("TFileService");
 
   consumes< std::vector<Trajectory> >(trajectoryTag_);
+
+  using ROOT::Math::SMatrixNoInit;
+ 
+ 
+  holder1_.template setup<1>(&resVec1_, &matV11_, &projMat51_, &resMeas1_, &matVMeas11_, aVec5_, aSymMat55_);
+  holder2_.template setup<2>(&resVec2_, &matV22_, &projMat52_, &resMeas2_, &matVMeas22_, aVec5_, aSymMat55_);
+
 }
 
 
@@ -132,8 +163,6 @@ void
 GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
-
-   KfComponentsHolder componentsHolder;
 
    run_ = iEvent.eventAuxiliary().run();
    lumi_ = iEvent.eventAuxiliary().luminosityBlock();
@@ -189,20 +218,36 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 	 updLErr_[i] = sqrt(localUpdErrs.matrix()[i][i]);
        }
 
+       cout << "Before rechit" << endl;
        const TrackingRecHit& recHit = *itm->recHit();
-       if ( recHit.isValid() ) {
+       cout << "After rechit" << endl;
+       for ( int i=0; i<2; ++i ) {
+	 hitPar_[i] = 0.;
+	 hitErr_[i] = 0.;
+       }
+       if ( recHit.isValid() && (recHit.dimension()==1 || recHit.dimension()==2) ) {
 	 gPos = recHit.globalPosition();
 	 hitGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
-	 recHit.getKfComponents2D(componentsHolder);
-	 for ( int i=0; i<2; ++i ) {
-	   if ( i<recHit.dimension() ) {
-	     hitPar_[i] = componentsHolder.measuredParameters()[i];
-	     hitErr_[i] = sqrt(componentsHolder.measuredErrors()[i][i]);
+	 cout << "Before components" << " " << recHit.dimension() << endl;
+	 switch ( recHit.dimension() ) {
+	 case 1:
+	   holder1_.template setup<1>(&resVec1_, &matV11_, &projMat51_, &resMeas1_, &matVMeas11_, 
+				      aVec5_, aSymMat55_);
+	   recHit.getKfComponents(holder1_);
+	   hitPar_[0] = holder1_.params<1>()[0];
+	   hitErr_[0] = sqrt(holder1_.errors<1>()[0][0]);
+	   break;
+	 case 2:
+	   cout << "A" << endl;
+	   holder2_.template setup<2>(&resVec2_, &matV22_, &projMat52_, &resMeas2_, &matVMeas22_, 
+				      aVec5_, aSymMat55_);
+	   recHit.getKfComponents(holder2_);
+	   cout << "B" << endl;
+	   for ( int i=0; i<2; ++i ) {
+	     hitPar_[i] = holder2_.params<2>()[i];
+	     hitErr_[i] = sqrt(holder2_.errors<2>()[i][i]);
 	   }
-	   else {
-	     hitPar_[i] = 0.;
-	     hitErr_[i] = 0.;
-	   }
+	   break;
 	 }
 	 cout << "  Position (hit)      " << gPos.perp() << " " << gPos.z() << endl;
        }

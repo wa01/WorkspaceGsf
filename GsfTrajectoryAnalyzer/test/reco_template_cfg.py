@@ -67,7 +67,7 @@ process.TFileService = cms.Service("TFileService",
                                    )
 
 process.contentAnalyzer = cms.EDAnalyzer("EventContentAnalyzer")
-process.trajectoryAnalyzer = cms.EDAnalyzer("MyGsfTrajectoryAnalyzer",
+process.trajectoryAnalyzer = cms.EDAnalyzer("GsfTrajectoryAnalyzer",
                                             trajectories = cms.InputTag("electronGsfTracks")
 )
 process.contentAnalyzer_step = cms.Path(#process.contentAnalyzer,
