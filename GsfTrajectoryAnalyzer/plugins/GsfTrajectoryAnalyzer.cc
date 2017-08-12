@@ -65,6 +65,8 @@ private:
   void fillGlobal(const TrajectoryStateOnSurface& tsos, TVector3& position, TVector3& momentum);
   void fillParameters(const TrajectoryStateOnSurface& tsos, 
 		      std::vector<float>& parameters, std::vector<float>& errors);
+  void fillComponent(const std::vector<TrajectoryStateOnSurface>& components, size_t ic,
+		     float& weight, std::vector<float>& parameters, std::vector<float>& errors);
 
       // ----------member data ---------------------------
 private:
@@ -186,6 +188,24 @@ GsfTrajectoryAnalyzer::fillParameters(const TrajectoryStateOnSurface& tsos,
        }
 }
 
+void
+GsfTrajectoryAnalyzer::fillComponent(const std::vector<TrajectoryStateOnSurface>& components, size_t ic,
+				     float& weight, std::vector<float>& parameters, std::vector<float>& errors)
+{
+  if ( ic<components.size() ) {
+    const TrajectoryStateOnSurface& tsos = components[ic];
+    weight = tsos.weight();
+    fillParameters(tsos,parameters,errors);
+  }
+  else {
+    weight = -1.;
+    for ( size_t i=0; i<5; ++i ) {
+      parameters[i] = 0.;
+      errors[i] = 0.;
+    }
+  }
+}				     
+
 // ------------ method called for each event  ------------
 void
 GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
@@ -215,50 +235,19 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
        ic_ = -1;
        for ( size_t i=0; i<3; ++i )  wgts_[i] = -1.;
 
-
        fillGlobal(itm->forwardPredictedState(),fwPredGPos_,fwPredGMom_);
        fillParameters(itm->forwardPredictedState(),fwPredLPar_,fwPredLErr_);
-       // gPos = itm->forwardPredictedState().globalPosition();
-       // gMom = itm->forwardPredictedState().globalMomentum();
-       // fwPredGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
-       // fwPredGMom_.SetXYZ(gMom.x(),gMom.y(),gMom.z());
-       // const LocalTrajectoryParameters& localFwPars = itm->forwardPredictedState().localParameters();
-       // const LocalTrajectoryError& localFwErrs = itm->forwardPredictedState().localError();
        ncs_[0] = itm->forwardPredictedState().components().size();
-       // for ( size_t i=0; i<5; ++i ) {
-       // 	 fwPredLPar_[i] = localFwPars.vector()[i];
-       // 	 fwPredLErr_[i] = sqrt(localFwErrs.matrix()[i][i]);
-       // }
 
        fillGlobal(itm->backwardPredictedState(),bwPredGPos_,bwPredGMom_);
        fillParameters(itm->backwardPredictedState(),bwPredLPar_,bwPredLErr_);
-       // gPos = itm->backwardPredictedState().globalPosition();
-       // gMom = itm->backwardPredictedState().globalMomentum();
-       // bwPredGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
-       // bwPredGMom_.SetXYZ(gMom.x(),gMom.y(),gMom.z());
-       // const LocalTrajectoryParameters& localBwPars = itm->backwardPredictedState().localParameters();
-       // const LocalTrajectoryError& localBwErrs = itm->backwardPredictedState().localError();
        ncs_[1] = itm->backwardPredictedState().components().size();
-       // for ( size_t i=0; i<5; ++i ) {
-       // 	 bwPredLPar_[i] = localBwPars.vector()[i];
-       // 	 bwPredLErr_[i] = sqrt(localBwErrs.matrix()[i][i]);
-       // }
        // cout << "  Position (pred bwd) " << gPos.perp() << " " << gPos.z() << endl;
        // cout << "  Momentum (pred bwd) " << gMom.perp() << " " << gMom.eta() << " " << gMom.phi() << endl;
 
        fillGlobal(itm->updatedState(),updGPos_,updGMom_);
        fillParameters(itm->updatedState(),updLPar_,updLErr_);
-       // gPos = itm->updatedState().globalPosition();
-       // gMom = itm->updatedState().globalMomentum();
-       // updGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
-       // updGMom_.SetXYZ(gMom.x(),gMom.y(),gMom.z());
-       // const LocalTrajectoryParameters& localUpdPars = itm->updatedState().localParameters();
-       // const LocalTrajectoryError& localUpdErrs = itm->updatedState().localError();
        ncs_[2] = itm->updatedState().components().size();
-       // for ( size_t i=0; i<5; ++i ) {
-       // 	 updLPar_[i] = localUpdPars.vector()[i];
-       // 	 updLErr_[i] = sqrt(localUpdErrs.matrix()[i][i]);
-       // }
 
        const TrackingRecHit& recHit = *itm->recHit();
        for ( int i=0; i<2; ++i ) {
@@ -290,12 +279,28 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
        }
        else {
 	 hitGPos_.SetXYZ(0.,0.,0.);
-	 cout << "  Position (hit)      invalid hit" << endl;
+	 // cout << "  Position (hit)      invalid hit" << endl;
        }
        // cout << "  Position (updated)  " << gPos.perp() << " " << gPos.z() << endl;
        // cout << "  Momentum (updated)  " << gMom.perp() << " " << gMom.eta() << " " << gMom.phi() << endl;
-       cout << "  ---" << endl;
+       // cout << "  ---" << endl;
        tree_->Fill();
+
+       int ncmax = ncs_[0];
+       if ( ncmax<ncs_[1] )  ncmax = ncs_[1];
+       if ( ncmax<ncs_[2] )  ncmax = ncs_[2];
+
+       std::vector<TrajectoryStateOnSurface> fwPredComps = itm->forwardPredictedState().components();
+       std::vector<TrajectoryStateOnSurface> bwPredComps = itm->backwardPredictedState().components();
+       std::vector<TrajectoryStateOnSurface> updComps = itm->updatedState().components();
+       for ( size_t i=0; i<(size_t)ncmax; ++i ) {
+	 ic_ = i;
+	 fillComponent(fwPredComps,i,wgts_[0],fwPredLPar_,fwPredLErr_);
+	 fillComponent(bwPredComps,i,wgts_[1],bwPredLPar_,bwPredLErr_);
+	 fillComponent(updComps,i,wgts_[2],updLPar_,updLErr_);
+	 tree_->Fill();
+       }
+
      }
    }
    
