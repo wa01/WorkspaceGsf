@@ -72,6 +72,7 @@ private:
   long long evt_;
   int itraj_;
   int itm_[2];
+  int ncs_[3];
   TVector3 fwPredGPos_;
   TVector3 fwPredGMom_;
   std::vector<float> fwPredLPar_;
@@ -190,6 +191,7 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
        fwPredGMom_.SetXYZ(gMom.x(),gMom.y(),gMom.z());
        const LocalTrajectoryParameters& localFwPars = itm->forwardPredictedState().localParameters();
        const LocalTrajectoryError& localFwErrs = itm->forwardPredictedState().localError();
+       ncs_[0] = itm->forwardPredictedState().components().size();
        for ( size_t i=0; i<5; ++i ) {
 	 fwPredLPar_[i] = localFwPars.vector()[i];
 	 fwPredLErr_[i] = sqrt(localFwErrs.matrix()[i][i]);
@@ -201,6 +203,7 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
        bwPredGMom_.SetXYZ(gMom.x(),gMom.y(),gMom.z());
        const LocalTrajectoryParameters& localBwPars = itm->backwardPredictedState().localParameters();
        const LocalTrajectoryError& localBwErrs = itm->backwardPredictedState().localError();
+       ncs_[1] = itm->backwardPredictedState().components().size();
        for ( size_t i=0; i<5; ++i ) {
 	 bwPredLPar_[i] = localBwPars.vector()[i];
 	 bwPredLErr_[i] = sqrt(localBwErrs.matrix()[i][i]);
@@ -213,6 +216,7 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
        updGMom_.SetXYZ(gMom.x(),gMom.y(),gMom.z());
        const LocalTrajectoryParameters& localUpdPars = itm->updatedState().localParameters();
        const LocalTrajectoryError& localUpdErrs = itm->updatedState().localError();
+       ncs_[2] = itm->updatedState().components().size();
        for ( size_t i=0; i<5; ++i ) {
 	 updLPar_[i] = localUpdPars.vector()[i];
 	 updLErr_[i] = sqrt(localUpdErrs.matrix()[i][i]);
@@ -281,6 +285,7 @@ GsfTrajectoryAnalyzer::beginJob()
   tree_->Branch("evt",&evt_,"evt/L");
   tree_->Branch("itraj",&itraj_,"itraj/I");
   tree_->Branch("itm",itm_,"itmf/I:itmr/I");
+  tree_->Branch("ncs",ncs_,"ncFwPred/I:ncBwPred/I:ncUpd/I");
   tree_->Branch("fwPredGPos",&fwPredGPos_);
   tree_->Branch("fwPredLPar",&fwPredLPar_);
   tree_->Branch("fwPredLErr",&fwPredLErr_);
