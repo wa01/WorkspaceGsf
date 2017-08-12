@@ -63,6 +63,8 @@ private:
   virtual void endJob() override;
 
   void fillGlobal(const TrajectoryStateOnSurface& tsos, TVector3& position, TVector3& momentum);
+  void fillParameters(const TrajectoryStateOnSurface& tsos, 
+		      std::vector<float>& parameters, std::vector<float>& errors);
 
       // ----------member data ---------------------------
 private:
@@ -75,6 +77,8 @@ private:
   int itraj_;
   int itm_[2];
   int ncs_[3];
+  int ic_;
+  float wgts_[3];
   TVector3 fwPredGPos_;
   TVector3 fwPredGMom_;
   std::vector<float> fwPredLPar_;
@@ -170,6 +174,17 @@ GsfTrajectoryAnalyzer::fillGlobal(const TrajectoryStateOnSurface& tsos, TVector3
   momentum.SetXYZ(gMom.x(),gMom.y(),gMom.z());
 }
 
+void
+GsfTrajectoryAnalyzer::fillParameters(const TrajectoryStateOnSurface& tsos, 
+				      std::vector<float>& parameters, std::vector<float>& errors)
+{
+       const LocalTrajectoryParameters& localUpdPars = tsos.localParameters();
+       const LocalTrajectoryError& localUpdErrs = tsos.localError();
+       for ( size_t i=0; i<5; ++i ) {
+	 parameters[i] = localUpdPars.vector()[i];
+	 errors[i] = sqrt(localUpdErrs.matrix()[i][i]);
+       }
+}
 
 // ------------ method called for each event  ------------
 void
@@ -197,46 +212,53 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
      itm_[1] = -ntm+1;
      for ( Trajectory::DataContainer::const_iterator itm=traj->measurements().begin();
 	   itm!=traj->measurements().end(); ++itm,++itm_[0],++itm_[1] ) {
+       ic_ = -1;
+       for ( size_t i=0; i<3; ++i )  wgts_[i] = -1.;
+
+
        fillGlobal(itm->forwardPredictedState(),fwPredGPos_,fwPredGMom_);
+       fillParameters(itm->forwardPredictedState(),fwPredLPar_,fwPredLErr_);
        // gPos = itm->forwardPredictedState().globalPosition();
        // gMom = itm->forwardPredictedState().globalMomentum();
        // fwPredGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
        // fwPredGMom_.SetXYZ(gMom.x(),gMom.y(),gMom.z());
-       const LocalTrajectoryParameters& localFwPars = itm->forwardPredictedState().localParameters();
-       const LocalTrajectoryError& localFwErrs = itm->forwardPredictedState().localError();
+       // const LocalTrajectoryParameters& localFwPars = itm->forwardPredictedState().localParameters();
+       // const LocalTrajectoryError& localFwErrs = itm->forwardPredictedState().localError();
        ncs_[0] = itm->forwardPredictedState().components().size();
-       for ( size_t i=0; i<5; ++i ) {
-	 fwPredLPar_[i] = localFwPars.vector()[i];
-	 fwPredLErr_[i] = sqrt(localFwErrs.matrix()[i][i]);
-       }
+       // for ( size_t i=0; i<5; ++i ) {
+       // 	 fwPredLPar_[i] = localFwPars.vector()[i];
+       // 	 fwPredLErr_[i] = sqrt(localFwErrs.matrix()[i][i]);
+       // }
 
        fillGlobal(itm->backwardPredictedState(),bwPredGPos_,bwPredGMom_);
+       fillParameters(itm->backwardPredictedState(),bwPredLPar_,bwPredLErr_);
        // gPos = itm->backwardPredictedState().globalPosition();
        // gMom = itm->backwardPredictedState().globalMomentum();
        // bwPredGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
        // bwPredGMom_.SetXYZ(gMom.x(),gMom.y(),gMom.z());
-       const LocalTrajectoryParameters& localBwPars = itm->backwardPredictedState().localParameters();
-       const LocalTrajectoryError& localBwErrs = itm->backwardPredictedState().localError();
+       // const LocalTrajectoryParameters& localBwPars = itm->backwardPredictedState().localParameters();
+       // const LocalTrajectoryError& localBwErrs = itm->backwardPredictedState().localError();
        ncs_[1] = itm->backwardPredictedState().components().size();
-       for ( size_t i=0; i<5; ++i ) {
-	 bwPredLPar_[i] = localBwPars.vector()[i];
-	 bwPredLErr_[i] = sqrt(localBwErrs.matrix()[i][i]);
-       }
+       // for ( size_t i=0; i<5; ++i ) {
+       // 	 bwPredLPar_[i] = localBwPars.vector()[i];
+       // 	 bwPredLErr_[i] = sqrt(localBwErrs.matrix()[i][i]);
+       // }
        // cout << "  Position (pred bwd) " << gPos.perp() << " " << gPos.z() << endl;
        // cout << "  Momentum (pred bwd) " << gMom.perp() << " " << gMom.eta() << " " << gMom.phi() << endl;
 
        fillGlobal(itm->updatedState(),updGPos_,updGMom_);
+       fillParameters(itm->updatedState(),updLPar_,updLErr_);
        // gPos = itm->updatedState().globalPosition();
        // gMom = itm->updatedState().globalMomentum();
        // updGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
        // updGMom_.SetXYZ(gMom.x(),gMom.y(),gMom.z());
-       const LocalTrajectoryParameters& localUpdPars = itm->updatedState().localParameters();
-       const LocalTrajectoryError& localUpdErrs = itm->updatedState().localError();
+       // const LocalTrajectoryParameters& localUpdPars = itm->updatedState().localParameters();
+       // const LocalTrajectoryError& localUpdErrs = itm->updatedState().localError();
        ncs_[2] = itm->updatedState().components().size();
-       for ( size_t i=0; i<5; ++i ) {
-	 updLPar_[i] = localUpdPars.vector()[i];
-	 updLErr_[i] = sqrt(localUpdErrs.matrix()[i][i]);
-       }
+       // for ( size_t i=0; i<5; ++i ) {
+       // 	 updLPar_[i] = localUpdPars.vector()[i];
+       // 	 updLErr_[i] = sqrt(localUpdErrs.matrix()[i][i]);
+       // }
 
        const TrackingRecHit& recHit = *itm->recHit();
        for ( int i=0; i<2; ++i ) {
@@ -246,7 +268,6 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
        if ( recHit.isValid() && (recHit.dimension()==1 || recHit.dimension()==2) ) {
 	 gPos = recHit.globalPosition();
 	 hitGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
-	 cout << "Before components" << " " << recHit.dimension() << endl;
 	 switch ( recHit.dimension() ) {
 	 case 1:
 	   holder1_.template setup<1>(&resVec1_, &matV11_, &projMat51_, &resMeas1_, &matVMeas11_, 
@@ -265,7 +286,7 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 	   }
 	   break;
 	 }
-	 cout << "  Position (hit)      " << gPos.perp() << " " << gPos.z() << endl;
+	 // cout << "  Position (hit)      " << gPos.perp() << " " << gPos.z() << endl;
        }
        else {
 	 hitGPos_.SetXYZ(0.,0.,0.);
@@ -298,6 +319,8 @@ GsfTrajectoryAnalyzer::beginJob()
   tree_->Branch("itraj",&itraj_,"itraj/I");
   tree_->Branch("itm",itm_,"itmf/I:itmr/I");
   tree_->Branch("ncs",ncs_,"ncFwPred/I:ncBwPred/I:ncUpd/I");
+  tree_->Branch("ic",&ic_,"ic/I");
+  tree_->Branch("wgts",wgts_,"wgtFwPred/F:wgtBwPred/F:wgtUpd/F");
   tree_->Branch("fwPredGPos",&fwPredGPos_);
   tree_->Branch("fwPredLPar",&fwPredLPar_);
   tree_->Branch("fwPredLErr",&fwPredLErr_);
