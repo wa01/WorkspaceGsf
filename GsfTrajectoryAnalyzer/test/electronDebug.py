@@ -2,6 +2,23 @@ import sys
 from TrajectoryStates import *
 import ROOT
 
+class MyIterator:
+    def __init__(self,itObj):
+        self.iter = iter(itObj)
+        self.current = None
+        self.fakeNext = False
+
+    def next(self,keep=False):
+        if not self.fakeNext:
+            self.current = next(self.iter)
+        self.fakeNext = False
+        if keep:
+            self.fakeNext = True
+        return self.current
+
+    def current(self):
+        return self.current
+
 class Measurement:
     def __init__(self,im):
         self.im = im
@@ -23,8 +40,8 @@ class Measurement:
         self.fwPred = state
 
     def setUpd(self,state):
-        assert self.Upd==None
-        self.Upd = state
+        assert self.upd==None
+        self.upd = state
 
 class Trajectory:
     def __init__(self,run,lumi,evt,itraj):
@@ -40,48 +57,69 @@ class Trajectory:
         self.nm += 1
         self.measurements.append(measurement)
 
-def readMeasurement(ev):
+def readMeasurement(iev):
+    ev = iev.next()
     assert ev.ic==-1
-    tm = Measurement(ev.imf)
+    tm = Measurement(ev.itmf)
     fwPred = MultiTState(parameters=ev.fwPredLPar,errors=ev.fwPredLErr)
     bwPred = MultiTState(parameters=ev.bwPredLPar,errors=ev.bwPredLErr)
-    upd = MultiTState(parameters=ev.updLPar,errors=updLErr)
+    upd = MultiTState(parameters=ev.updLPar,errors=ev.updLErr)
     ncFwPred = ev.ncFwPred
     ncBwPred = ev.ncBwPred
     ncUpd = ev.ncUpd
     ncMax = max(ncFwPred,ncBwPred,ncUpd)
-    endFlg = False
+#    endFlg = False
     for i in range(ncMax):
+        ev = iev.next()
+        print ncFwPred,ncBwPred,ncUpd,ev.ic,ev.wgtFwPred,ev.wgtBwPred,ev.wgtUpd
         if i<ncFwPred:
             assert ev.wgtFwPred>=0
-            fwPred.addComponent(SingleTState(ev.fwPredLPar,ev.fwPredLErr,ev.wgtFwPred))
+            fwPred.addComponent(ev.fwPredLPar,ev.fwPredLErr,ev.wgtFwPred)
         if i<ncBwPred:
             assert ev.wgtBwPred>=0
-            bwPred.addComponent(SingleTState(ev.bwPredLPar,ev.bwPredLErr,ev.wgtBwPred))
+            bwPred.addComponent(ev.bwPredLPar,ev.bwPredLErr,ev.wgtBwPred)
         if i<ncUpd:
             assert ev.wgtUpd>=0
-            upd.addComponent(SingleTState(ev.updLPar,ev.updLErr,ev.wgtUpd))
-        try:
-            next(ev)
-        except StopIteration:
-            assert i==(ncMax-1)
-            endFlg = True
-            break
+            upd.addComponent(ev.updLPar,ev.updLErr,ev.wgtUpd)
+#        ev = None
+#        try:
+#            next(ev)
+#        except StopIteration:
+#            assert i==(ncMax-1)
+#            endFlg = True
+#            break
     tm.setFwPred(fwPred)
     tm.setBwPred(bwPred)
     tm.setUpd(upd)
-    return ( endFlg, tm )
+    return tm
 
 
-def readTrajectory(ev):
-    assert ev.imf==0
+def readTrajectory(iev):
+    ev = iev.next(keep=True)
+    assert ev.itmf==0
     traj = Trajectory(ev.run,ev.lumi,ev.evt,ev.itraj)
 
-    for i in range(-ev.imr+1):
-        endFlg, tm = readMeasurement(ev)
-        if endFlg:
-            assert i==-ev.imr
+#    endFlg = False
+    for i in range(-ev.itmr+1):
+        tm = readMeasurement(iev)
+#        if endFlg:
+#            assert i==-ev.itmr
+#            break
 
+    return traj
+
+if __name__=="__main__":
 
 
         
+    tf = ROOT.TFile(sys.argv[1])
+    analyzerDir = tf.Get("trajectoryAnalyzer")
+    gsfTree = analyzerDir.Get("GsfTree")
+
+    iev = MyIterator(gsfTree)
+#    endFlg = False
+    while True:
+        readTrajectory(iev)
+        break
+
+
