@@ -96,6 +96,7 @@ private:
   TVector3 hitGPos_;
   std::vector<float> hitPar_;
   std::vector<float> hitErr_;
+  // std::vector<float> projMat_;
 
   AlgebraicVector5 aVec5_;
   AlgebraicSymMatrix55 aSymMat55_;
@@ -254,6 +255,7 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 	 hitPar_[i] = 0.;
 	 hitErr_[i] = 0.;
        }
+       // projMat_.clear();
        if ( recHit.isValid() && (recHit.dimension()==1 || recHit.dimension()==2) ) {
 	 gPos = recHit.globalPosition();
 	 hitGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
@@ -264,15 +266,22 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 	   recHit.getKfComponents(holder1_);
 	   hitPar_[0] = holder1_.params<1>()[0];
 	   hitErr_[0] = sqrt(holder1_.errors<1>()[0][0]);
+	   // projMat_.resize(5,0.);
+	   // for ( size_t i=0; i<5; ++i )  projMat_[i] = projMat51_.matrix()[0][i];
 	   break;
 	 case 2:
 	   holder2_.template setup<2>(&resVec2_, &matV22_, &projMat52_, &resMeas2_, &matVMeas22_, 
 				      aVec5_, aSymMat55_);
+	   cout << "Global position " << bwPredGPos_.Pt() << " " << bwPredGPos_.z() << endl;
 	   recHit.getKfComponents(holder2_);
 	   for ( int i=0; i<2; ++i ) {
 	     hitPar_[i] = holder2_.params<2>()[i];
 	     hitErr_[i] = sqrt(holder2_.errors<2>()[i][i]);
 	   }
+	   // projMat_.resize(10,0.);
+	   // for ( size_t j=0; j<2; ++j ) {
+	   //   for ( size_t i=0; i<5; ++i )  projMat_[i+5*j] = projMat52_.matrix()[j][i];
+	   // }
 	   break;
 	 }
 	 // cout << "  Position (hit)      " << gPos.perp() << " " << gPos.z() << endl;
@@ -327,17 +336,21 @@ GsfTrajectoryAnalyzer::beginJob()
   tree_->Branch("ic",&ic_,"ic/I");
   tree_->Branch("wgts",wgts_,"wgtFwPred/F:wgtBwPred/F:wgtUpd/F");
   tree_->Branch("fwPredGPos",&fwPredGPos_);
+  tree_->Branch("fwPredGMom",&fwPredGMom_);
   tree_->Branch("fwPredLPar",&fwPredLPar_);
   tree_->Branch("fwPredLErr",&fwPredLErr_);
   tree_->Branch("bwPredGPos",&bwPredGPos_);
+  tree_->Branch("bwPredGMom",&bwPredGMom_);
   tree_->Branch("bwPredLPar",&bwPredLPar_);
   tree_->Branch("bwPredLErr",&bwPredLErr_);
   tree_->Branch("updGPos",&updGPos_);
+  tree_->Branch("updGMom",&updGMom_);
   tree_->Branch("updLPar",&updLPar_);
   tree_->Branch("updLErr",&updLErr_);
   tree_->Branch("hitGPos",&hitGPos_);
   tree_->Branch("hitPar",&hitPar_);
   tree_->Branch("hitErr",&hitErr_);
+  // tree_->Branch("projMat",&projMat_);
 
 }
 

@@ -1,14 +1,16 @@
+from copy import copy
+
 class SingleTState:
     def __init__(self,parameters,errors,weight=1.):
-        self.pars_ = parameters
-        self.errors_ = errors
-        self.weight_ = weight
+        self.pars_ = copy(parameters)
+        self.errors_ = copy(errors)
+        self.weight_ = copy(weight)
 
     def weight(self):
         return self.weight_
 
     def __getitem__(self,ind):
-        return (self.pars_[ind], self.errs_[ind])
+        return (self.pars_[ind], self.errors_[ind])
 
 class MultiTState:
 
