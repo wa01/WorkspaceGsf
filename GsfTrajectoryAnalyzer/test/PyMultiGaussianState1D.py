@@ -8,6 +8,7 @@ class PyMultiGaussianState1D:
 
         if not ROOT.gROOT.GetClass("MultiGaussianState1D"):
             print "Not found"
+            ROOT.gROOT.ProcessLine(".L MultiGaussianStateCombiner1D.cc+")
             ROOT.gROOT.ProcessLine(".L MultiGaussianState1D.cc+")
         self.singleStates = ROOT.MultiGaussianState1D.SingleState1dContainer()
         self.nc = None
