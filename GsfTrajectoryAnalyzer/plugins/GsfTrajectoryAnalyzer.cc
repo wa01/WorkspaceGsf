@@ -256,7 +256,7 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 	 hitErr_[i] = 0.;
        }
        // projMat_.clear();
-       if ( recHit.isValid() && (recHit.dimension()==1 || recHit.dimension()==2) ) {
+       if ( recHit.isValid() && (recHit.dimension()==1 || recHit.dimension()==2) && ic_<0 ) {
 	 gPos = recHit.globalPosition();
 	 hitGPos_.SetXYZ(gPos.x(),gPos.y(),gPos.z());
 	 switch ( recHit.dimension() ) {
@@ -277,6 +277,30 @@ GsfTrajectoryAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 	   for ( int i=0; i<2; ++i ) {
 	     hitPar_[i] = holder2_.params<2>()[i];
 	     hitErr_[i] = sqrt(holder2_.errors<2>()[i][i]);
+	   }
+	   double hitRho = holder2_.errors<2>()[0][1]/hitErr_[0]/hitErr_[1];
+	   cout << "hitRho(1) = " << hitRho << endl;
+	   if ( fabs(hitRho)>1.e-5 ) {
+	     cout << "hitRho = " << hitRho << endl;
+	     std::vector<float> par(hitPar_);
+	     std::vector<float> err(hitErr_);
+	     cout << "Old parameters / errors :" 
+		  << " " << hitPar_[0] << " +- " << hitErr_[0] << "  ;  "
+		  << " " << hitPar_[1] << " +- " << hitErr_[1] << endl;
+	     for ( int i=0; i<2; ++i ) {
+	       float pref;
+	       if ( fwPredLErr_[5-i]<bwPredLErr_[5-i] ) {
+		 pref = fwPredLPar_[5-i];
+	       }
+	       else {
+		 pref = bwPredLPar_[5-i];
+	       }
+	       cout << "RefPar for " << 1-i << " is " << pref << endl;
+	       hitPar_[i] += err[i]*hitRho/err[1-i]*(pref-par[1-i]);
+	       hitErr_[i] *= sqrt(1-hitRho*hitRho);
+	       cout << "New parameters / errors for " << i << " :" 
+		    << " " << hitPar_[i] << " +- " << hitErr_[i] << endl;
+	     }
 	   }
 	   // projMat_.resize(10,0.);
 	   // for ( size_t j=0; j<2; ++j ) {

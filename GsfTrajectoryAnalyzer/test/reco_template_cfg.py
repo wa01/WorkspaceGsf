@@ -26,7 +26,7 @@ process.load('DQMOffline.Configuration.DQMOffline_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(3)
 )
 #process.MessageLogger.FrameworkJobReport.default.limit = 1000
 
@@ -70,7 +70,7 @@ process.contentAnalyzer = cms.EDAnalyzer("EventContentAnalyzer")
 process.trajectoryAnalyzer = cms.EDAnalyzer("GsfTrajectoryAnalyzer",
                                             trajectories = cms.InputTag("electronGsfTracks")
 )
-process.contentAnalyzer_step = cms.Path(#process.contentAnalyzer,
+process.contentAnalyzer_step = cms.Path(#process.contentAnalyzer+
                                         process.trajectoryAnalyzer)
 
 # Output definition
