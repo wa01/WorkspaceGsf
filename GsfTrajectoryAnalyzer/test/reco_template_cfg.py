@@ -26,7 +26,7 @@ process.load('DQMOffline.Configuration.DQMOffline_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(3)
+    input = cms.untracked.int32(-1)
 )
 #process.MessageLogger.FrameworkJobReport.default.limit = 1000
 
@@ -412,9 +412,9 @@ process.schedule = cms.Schedule(process.raw2digi_step,process.L1Reco_step,proces
 #,process.pathALCARECOEcalESAlign,process.pathALCARECOEcalUncalWElectron,process.pathALCARECOHcalCalIsoTrkFilter,process.pathALCARECOHcalCalIterativePhiSym,process.pathALCARECOEcalUncalZElectron,process.pathALCARECOEcalUncalZSCElectron,process.eventinterpretaion_step,process.Flag_HBHENoiseFilter,process.Flag_HBHENoiseIsoFilter,process.Flag_CSCTightHaloFilter,process.Flag_CSCTightHaloTrkMuUnvetoFilter,process.Flag_CSCTightHalo2015Filter,process.Flag_globalTightHalo2016Filter,process.Flag_globalSuperTightHalo2016Filter,process.Flag_HcalStripHaloFilter,process.Flag_hcalLaserEventFilter,process.Flag_EcalDeadCellTriggerPrimitiveFilter,process.Flag_EcalDeadCellBoundaryEnergyFilter,process.Flag_goodVertices,process.Flag_eeBadScFilter,process.Flag_ecalLaserCorrFilter,process.Flag_trkPOGFilters,process.Flag_chargedHadronTrackResolutionFilter,process.Flag_muonBadTrackFilter,process.Flag_BadChargedCandidateFilter,process.Flag_BadPFMuonFilter,process.Flag_BadChargedCandidateSummer16Filter,process.Flag_BadPFMuonSummer16Filter,process.Flag_trkPOG_manystripclus53X,process.Flag_trkPOG_toomanystripclus53X,process.Flag_trkPOG_logErrorTooManyClusters,process.Flag_METFilters,process.dqmoffline_step,process.dqmoffline_1_step,process.dqmoffline_2_step,process.dqmoffline_3_step,process.dqmoffline_4_step,process.dqmofflineOnPAT_step,process.AODoutput_step,process.MINIAODoutput_step,process.DQMoutput_step,process.ALCARECOStreamEcalESAlignOutPath,process.ALCARECOStreamEcalUncalWElectronOutPath,process.ALCARECOStreamEcalUncalZElectronOutPath,process.ALCARECOStreamHcalCalIsoTrkFilterOutPath,process.ALCARECOStreamHcalCalIterativePhiSymOutPath
 )
 
-#Setup FWK for multithreaded
-process.options.numberOfThreads=cms.untracked.uint32(2)
-process.options.numberOfStreams=cms.untracked.uint32(0)
+##Setup FWK for multithreaded
+#process.options.numberOfThreads=cms.untracked.uint32(2)
+#process.options.numberOfStreams=cms.untracked.uint32(0)
 
 # customisation of the process.
 
